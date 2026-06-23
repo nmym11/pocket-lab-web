@@ -13,5 +13,17 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+  // 页面加载后延迟 500ms，模拟点击左上角图标
+  setTimeout(() => {
+    const logo = document.querySelector('nav a, header a, .logo, [aria-label="Home"]');
+    if (logo) {
+      logo.click();
+    } else {
+      // 如果找不到图标，直接重新加载页面（相当于强制刷新到正确状态）
+      window.location.reload();
+    }
+  }, 500);
+</script>
   </body>
 </html>
