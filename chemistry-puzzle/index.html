@@ -1,0 +1,114 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>分子建筑师 — 用原子积木搭出整个世界</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;background:linear-gradient(135deg,#0A0E27 0%,#1a0f0a 50%,#0A0E27 100%);touch-action:none;user-select:none}
+#top{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px 16px;background:rgba(10,14,39,0.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,0.06)}
+.lvl{background:#fff;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:5px 14px;font-size:13px;color:#333;font-weight:600}
+.rst{background:rgba(0,0,0,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:5px 12px;font-size:12px;color:#666;cursor:pointer;transition:0.2s}
+.rst:hover{background:rgba(0,0,0,0.08)}
+.hnt{position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:20;font-size:11px;color:rgba(212,165,116,0.25);pointer-events:none;white-space:nowrap}
+#zone{position:fixed;top:75px;left:50%;transform:translateX(-50%);width:80vw;height:calc(100vh - 230px);max-width:480px;border:2px dashed rgba(255,255,255,0.08);border-radius:50%;background:rgba(255,255,255,0.2);z-index:0;pointer-events:none}
+#cv{position:fixed;top:65px;left:0;right:0;bottom:165px;z-index:1;pointer-events:none}
+#tray{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(10,14,39,0.95);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-top:1px solid rgba(255,255,255,0.06);padding:8px 12px 14px;display:flex;flex-direction:column;align-items:center;gap:4px}
+#trayL{font-size:10px;color:rgba(212,165,116,0.25);letter-spacing:0.05em}
+#trayR{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ac{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#fff;cursor:grab;box-shadow:0 2px 8px rgba(0,0,0,0.15);position:relative;-webkit-tap-highlight-color:transparent;transition:0.15s}
+.ac:active{transform:scale(0.9)}
+.ac .v{position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:#fff;border:1px solid rgba(0,0,0,0.08);color:#333;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ac.u{opacity:0.3;pointer-events:none;transform:scale(0.85)}
+#t{position:fixed;top:65px;left:0;right:0;bottom:165px;z-index:10}
+.a{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;cursor:grab;box-shadow:0 3px 12px rgba(255,255,255,0.08);-webkit-tap-highlight-color:transparent;z-index:10;user-select:none}
+.a:active{box-shadow:0 5px 20px rgba(212,165,116,0.25)}
+.a .b{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;background:#fff;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:0.3s}
+.a .b.ok{background:#4ade80;border-color:#22c55e;color:#fff}
+.so{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(10,14,39,0.7);backdrop-filter:blur(6px)}
+.so.s{display:flex}
+@keyframes pop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+.sc{background:#fff;border-radius:20px;padding:24px 28px;text-align:center;max-width:85%;animation:pop 0.4s;box-shadow:0 8px 40px rgba(255,255,255,0.08)}
+.sc .f{font-size:42px;font-weight:800;color:#333;margin-bottom:2px}
+.sc .n{font-size:18px;color:#666;margin-bottom:8px}
+.sc .d{font-size:13px;color:#888;line-height:1.6;margin-bottom:14px}
+.sc .btn{display:inline-block;padding:10px 26px;border:none;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+.wt{position:fixed;top:80px;left:50%;transform:translateX(-50%);z-index:60;background:#fee;border:1px solid #fcc;border-radius:10px;padding:8px 16px;color:#c33;font-size:13px;display:none;max-width:85%;white-space:nowrap}
+@media(max-width:480px){#zone{width:90vw;height:calc(100vh - 210px)}.ac{width:46px;height:46px;font-size:13px}.sc .f{font-size:30px}.sc{padding:16px}.hnt{font-size:10px}}
+.a::after{content:'';position:absolute;inset:2px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.35),transparent 70%);pointer-events:none;z-index:2}
+.a{z-index:1}
+.a .b{z-index:3}
+.ac::after{content:'';position:absolute;inset:1px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(255,255,255,0.3),transparent 70%);pointer-events:none}
+@keyframes zp{0%,100%{border-color:rgba(255,255,255,0.04);box-shadow:0 0 10px rgba(255,255,255,0.02)}50%{border-color:rgba(255,255,255,0.1);box-shadow:0 0 25px rgba(255,255,255,0.05)}}
+#zone{animation:zp 3s ease-in-out infinite}
+</style></head>
+<body>
+<div id="top"><span class="lvl" id="lvlB">第 1 关</span><button class="rst" id="rstBtn">↻ 重置</button><button class="rst" id="hintBtn">💡 提示</button></div>
+<div class="hnt" id="hintTxt">将原子拖到建造台，让它们自动成键</div>
+<div id="zone"></div><canvas id="cv"></canvas><div id="t"></div>
+<div id="tray"><div id="trayL">原子仓库</div><div id="trayR"></div></div>
+<div class="wt" id="toast"></div>
+<div class="so" id="sOver"><div class="sc"><div class="f" id="sF"></div><div class="n" id="sN"></div><div class="d" id="sD"></div><button class="btn" id="sBtn">下一关 →</button></div></div>
+<script>
+"use strict";
+const A={H:{v:1,c:"#fff",t:"#333",s:52},O:{v:2,c:"#ef4444",t:"#fff",s:58},C:{v:4,c:"#333",t:"#fff",s:62},N:{v:3,c:"#4488ff",t:"#fff",s:58}};
+const LV=[
+{id:1,t:"H\u2082O",n:"水",p:["O","H","H","H"],g:{O:1,H:2},m:"氧有2只手，拉住2个氢。这双手握紧的姿势，就是你每天喝的水。"},
+{id:2,t:"CO\u2082",n:"二氧化碳",p:["C","O","O","O"],g:{C:1,O:2},m:"碳有4只手，每2只拉住1个氧。植物用阳光把CO\u2082变成氧气和糖。"},
+{id:3,t:"CH\u2084",n:"甲烷",p:["C","H","H","H","H","H","H"],g:{C:1,H:4},m:"碳的4只手各拉1个氢，是最简单的有机分子。天然气灶就在烧它。"},
+{id:4,t:"\u81ea\u7531",n:"自由建造",p:["C","C","O","O","O","H","H","H","H","H","H","N","N"],g:null,m:"试试组合不同原子！满足所有原子的化合价就是成功！"}
+];
+const FC={"H2O":"氧有2只手，拉住2个氢。这就是你每天喝的水！","CO2":"碳有4只手，每2只拉住1个氧。植物用它制造氧气。","CH4":"碳的4只手各拉1个氢。天然气灶就在烧它！","NH3":"氮有3只手，拉3个氢。这是化肥的起点。","H2O2":"两个氧手拉手，各再拉1个氢。消毒用的双氧水。","O2":"两个氧手拉手，每分每秒都在呼吸。","N2":"两个氮手拉手，空气78%是它。","H2":"两个氢手拉手，最轻的气体。"};
+var lv=0,atoms=[],bonds=[],aid=0,used=[],drag=null,off={x:0,y:0},done=false;
+var $=function(e){return document.getElementById(e)};
+var lvlB=$("lvlB"),rst=$("rstBtn"),hint=$("hintBtn"),ht=$("hintTxt"),tr=$("trayR"),tbl=$("t"),cv=$("cv"),X=cv.getContext("2d"),so=$("sOver"),sF=$("sF"),sN=$("sN"),sD=$("sD"),sBtn=$("sBtn"),toast=$("toast");
+function sz(){var r=tbl.getBoundingClientRect();cv.style.left=r.left+"px";cv.style.top=r.top+"px";cv.width=r.width;cv.height=r.height;}
+function init(i){lv=i;done=false;atoms=[];bonds=[];aid=0;used=Array(LV[i].p.length).fill(false);lvlB.textContent="第 "+LV[i].id+" 关";so.classList.remove("s");sz();rT();ht.textContent=LV[i].g?"将 "+LV[i].t+" 的原子拖到建造台":"自由组合原子，让所有手都握满！";}
+function rT(){var d=LV[lv],h="";for(var i=0;i<d.p.length;i++){var el=d.p[i],a=A[el];h+='<div class="ac'+(used[i]?" u":"")+'" data-i="'+i+'" style="background:'+a.c+";color:"+a.t+'">'+el+'<span class="v">'+a.v+"</span></div>";}tr.innerHTML=h;}
+function aA(el,i,x,y){used[i]=true;var id=aid++;atoms.push({id,el,x,y,rem:A[el].v,ci:i});rT();up();}
+function rA(id){var idx=atoms.findIndex(function(a){return a.id===id});if(idx<0)return;used[atoms[idx].ci]=false;bonds=bonds.filter(function(b){return b.a!==id&&b.b!==id});atoms.splice(idx,1);rT();up();done=false;}
+function fA(x,y){var r=tbl.getBoundingClientRect();var cx=x-r.left,cy=y-r.top;for(var i=atoms.length-1;i>=0;i--){var a=atoms[i];if(Math.hypot(cx-a.x,cy-a.y)<35)return i}return -1;}
+function gp(e){var t=e.touches?e.touches[0]:e;return{x:t.clientX,y:t.clientY};}
+function inZ(x,y){var z=$("zone").getBoundingClientRect();var cx=z.left+z.width/2,cy=z.top+z.height/2,r=z.width/2;return Math.hypot(x-cx,y-cy)<r;}
+tbl.addEventListener("mousedown",function(e){if(done)return;var p=gp(e),i=fA(p.x,p.y);if(i>=0){drag=i;var r=tbl.getBoundingClientRect();off={x:p.x-r.left-atoms[i].x,y:p.y-r.top-atoms[i].y}}});
+document.addEventListener("mousemove",function(e){if(drag===null||done)return;var p=gp(e),r=tbl.getBoundingClientRect();atoms[drag].x=p.x-r.left-off.x;atoms[drag].y=p.y-r.top-off.y;rA2();up();});
+document.addEventListener("mouseup",function(){drag=null;rA2();up();});
+tbl.addEventListener("touchstart",function(e){if(done)return;var p=gp(e),i=fA(p.x,p.y);if(i>=0){drag=i;var r=tbl.getBoundingClientRect();off={x:p.x-r.left-atoms[i].x,y:p.y-r.top-atoms[i].y};e.preventDefault()}},{passive:false});
+document.addEventListener("touchmove",function(e){if(drag===null||done)return;var p=gp(e),r=tbl.getBoundingClientRect();atoms[drag].x=p.x-r.left-off.x;atoms[drag].y=p.y-r.left-off.y;rA2();up();e.preventDefault()},{passive:false});
+document.addEventListener("touchend",function(){drag=null;rA2();up();});
+tr.addEventListener("mousedown",function(e){var c=e.target.closest(".ac");if(!c||c.classList.contains("u"))return;var i=parseInt(c.dataset.i),d=LV[lv],el=d.p[i],r=tbl.getBoundingClientRect();aA(el,i,r.width/2+(Math.random()-0.5)*60,r.height/2+(Math.random()-0.5)*40);});
+tr.addEventListener("touchstart",function(e){var c=e.target.closest(".ac");if(!c||c.classList.contains("u"))return;var i=parseInt(c.dataset.i),d=LV[lv],el=d.p[i],r=tbl.getBoundingClientRect();aA(el,i,r.width/2+(Math.random()-0.5)*60,r.height/2+(Math.random()-0.5)*40);});
+function up(){
+  for(var i=0;i<atoms.length;i++){for(var j=i+1;j<atoms.length;j++){
+    var a=atoms[i],b=atoms[j];
+    if(Math.hypot(a.x-b.x,a.y-b.y)<(A[a.el].s+A[b.el].s)/2+18){
+      if(a.rem>0&&b.rem>0){bonds.push({a:a.id,b:b.id});a.rem--;b.rem--;}
+    }else{
+      var bi=-1;for(var k=0;k<bonds.length;k++){var bo=bonds[k];if((bo.a===a.id&&bo.b===b.id)||(bo.a===b.id&&bo.b===a.id)){bi=k;break}}
+      if(bi>=0){bonds.splice(bi,1);a.rem++;b.rem++;}
+    }
+  }}
+  var allD=atoms.length>0&&atoms.every(function(x){return x.rem===0});
+  if(allD&&!done){
+    var tl={};for(var i2=0;i2<atoms.length;i2++)tl[atoms[i2].el]=(tl[atoms[i2].el]||0)+1;
+    var d=LV[lv];
+    if(d.g){var ok=true;for(var k2 in d.g)if(tl[k2]!==d.g[k2]){ok=false;break;}for(var k3 in tl)if(!d.g[k3]){ok=false;break;}
+      if(ok)showS(d.t,d.n,d.m);else{warn("原子组合不对，试试其他搭配");setTimeout(function(){for(var m=0;m<atoms.length;m++)atoms[m].rem=A[atoms[m].el].v;bonds=[];rA2();x();},1200);}
+    }else{
+      var ff="";var sk=Object.keys(tl).sort();for(var m2=0;m2<sk.length;m2++)ff+=sk[m2]+(tl[sk[m2]]>1?tl[sk[m2]]:"");
+      var gn=FC[ff];var nm=ff==="H2O"?"水":ff==="CO2"?"二氧化碳":ff==="CH4"?"甲烷":ff==="NH3"?"氨气":ff==="H2O2"?"过氧化氢":ff==="O2"?"氧气":ff==="N2"?"氮气":ff==="H2"?"氢气":"新分子";
+      showS(ff,nm,gn||"你成功搭建了一个分子！");
+    }
+  }
+  x();rA2();
+}
+function x(){var r=tbl.getBoundingClientRect();cv.width=r.width;cv.height=r.height;X.clearRect(0,0,r.width,r.height);for(var i=0;i<bonds.length;i++){var bo=bonds[i];var a=findById(bo.a),b=findById(bo.b);if(!a||!b)continue;X.strokeStyle="rgba(80,80,120,0.35)";X.lineWidth=3;X.beginPath();X.moveTo(a.x,a.y);X.lineTo(b.x,b.y);X.stroke();}}
+function findById(id){for(var i=0;i<atoms.length;i++)if(atoms[i].id===id)return atoms[i];return null;}
+function rA2(){var h="";for(var i=0;i<atoms.length;i++){var a=atoms[i],e=A[a.el];h+='<div class="a" style="left:'+(a.x-e.s/2)+"px;top:"+(a.y-e.s/2)+"px;width:"+e.s+"px;height:"+e.s+"px;background:"+e.c+";color:"+e.t+'">'+e.sym+'<span class="b'+(a.rem===0?" ok":"")+'">'+a.rem+"</span></div>";}tbl.innerHTML=h;}
+function showS(f,n,m){sF.textContent=f;sN.textContent=n;sD.textContent=m;so.classList.add("s");sBtn.textContent=lv<LV.length-1?"下一关 \u2192":"\u25c0 重玩";done=true;}
+sBtn.addEventListener("click",function(){so.classList.remove("s");if(lv<LV.length-1)init(lv+1);else init(0);});
+function warn(m){toast.textContent=m;toast.style.display="block";setTimeout(function(){toast.style.display="none"},2000);}
+rst.addEventListener("click",function(){init(lv);});
+hint.addEventListener("click",function(){var d=LV[lv];if(d.g)warn("目标："+d.t+"（"+d.n+"）需要："+Object.keys(d.g).map(function(k){return k+"\u00d7"+d.g[k]}).join("、"));else warn("任意分子，所有原子手数归零即可！");});
+window.addEventListener("resize",function(){sz();x();});
+init(0);
+</script></body></html>
