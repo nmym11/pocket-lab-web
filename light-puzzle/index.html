@@ -1,0 +1,123 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>光线拼图 — 用镜子点亮星星</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden}
+body{background:linear-gradient(180deg,#0a0a2e 0%,#1a1040 50%,#0d0d2b 100%);font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100vh}
+#ui{position:fixed;top:0;left:0;right:0;bottom:0;z-index:10;pointer-events:none}
+#ui>*{pointer-events:auto}
+.top-bar{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;z-index:20}
+.lvl{background:rgba(255,255,255,0.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.12);border-radius:18px;padding:5px 16px;color:#e0d0c0;font-size:13px;font-weight:600;letter-spacing:0.04em}
+.rst{background:rgba(255,255,255,0.06);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:5px 14px;color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;transition:0.2s}
+.rst:hover{background:rgba(255,255,255,0.12);color:#e0d0c0}
+.nxt{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#f59e0b,#d97706);border:none;border-radius:22px;padding:11px 32px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(245,158,11,0.3);transition:0.3s;display:none;z-index:20}
+.nxt:hover{transform:translateX(-50%) translateY(-2px);box-shadow:0 6px 28px rgba(245,158,11,0.4)}
+.kpop{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.65);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,215,0,0.2);border-radius:14px;padding:12px 20px;color:#f0e8d8;font-size:13px;text-align:center;line-height:1.5;max-width:75%;opacity:0;transition:opacity 0.5s;pointer-events:none;z-index:20}
+.kpop.s{opacity:1}
+.hnt{position:absolute;top:50px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.2);font-size:11px;letter-spacing:0.08em;z-index:20;pointer-events:none}
+@media(max-width:480px){
+  .lvl{font-size:12px;padding:4px 12px}
+  .nxt{padding:10px 24px;font-size:14px;bottom:20px}
+  .kpop{font-size:12px;padding:10px 14px;bottom:75px;max-width:85%}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">
+<div class="top-bar"><span class="lvl" id="lvlB">第 1 关</span><button class="rst" id="rstBtn">↻ 重置</button></div>
+<div class="hnt" id="hnt">点击镜子 → 拖动旋转</div>
+<div class="kpop" id="kpop"><div id="kpopT"></div></div>
+<button class="nxt" id="nxtBtn">下一关 →</button>
+</div>
+<script>
+"use strict";
+const C=document.getElementById("c"),X=C.getContext("2d");
+const gi=function(e){return document.getElementById(e)};
+const lvlB=gi("lvlB"),rstBtn=gi("rstBtn"),nxtBtn=gi("nxtBtn"),kpop=gi("kpop"),kpopT=gi("kpopT"),hnt=gi("hnt");
+let W,H;
+function resize(){
+  const r=C.getBoundingClientRect();
+  const d=window.devicePixelRatio||1;
+  W=r.width;H=r.height;
+  C.width=W*d;C.height=H*d;
+  C.style.width=W+"px";C.style.height=H+"px";
+  X.setTransform(d,0,0,d,0,0);
+}
+const LV=[
+{id:1,src:{x:.12,y:.55},d:{x:1,y:0},star:{x:.75,y:.15},obs:[{x:.28,y:.15,w:.025,h:.55}],mir:[{x:.33,y:.62,len:80,ang:35}],tip:"入射角 = 反射角。光遇到镜子会严格按这个规则反弹。"},
+{id:2,src:{x:.08,y:.5},d:{x:1,y:0},star:{x:.75,y:.15},obs:[{x:.22,y:.08,w:.025,h:.35},{x:.22,y:.57,w:.025,h:.35}],mir:[{x:.27,y:.5,len:70,ang:20}],tip:"角度差一度，光线可能就飞到屏幕外了！"},
+{id:3,src:{x:.08,y:.25},d:{x:1,y:0},star:{x:.88,y:.12},obs:[{x:.28,y:.12,w:.22,h:.76}],mir:[{x:.26,y:.85,len:65,ang:40},{x:.55,y:.14,len:65,ang:-40}],tip:"两次反射可以让光拐一个大弯，潜望镜就是这个原理。"},
+{id:4,src:{x:.08,y:.15},d:{x:1,y:0},star:{x:.88,y:.15},obs:[{x:.28,y:.08,w:.025,h:.5},{x:.55,y:.4,w:.025,h:.52}],mir:[{x:.26,y:.7,len:65,ang:-30},{x:.6,y:.33,len:65,ang:30}],tip:"只要有合适的镜子，光可以走迷宫。"},
+{id:5,src:{x:.08,y:.55},d:{x:1,y:0},star:{x:.88,y:.55},obs:[{x:.22,y:.08,w:.025,h:.4},{x:.22,y:.68,w:.025,h:.25},{x:.48,y:.08,w:.025,h:.4},{x:.48,y:.68,w:.025,h:.25},{x:.72,y:.08,w:.025,h:.4},{x:.72,y:.68,w:.025,h:.25}],mir:[{x:.17,y:.47,len:55,ang:-35},{x:.4,y:.53,len:55,ang:35},{x:.65,y:.5,len:55,ang:-35}],tip:"光纤里，光就是靠无数次全反射，从地球这一头跑到那一头。"}
+];
+let lv=0,sel=-1,complete=false,dx=0,mirs=[],starz=[];
+for(let i=0;i<80;i++)starz.push({x:Math.random()*2000,y:Math.random()*2000,r:Math.random()*1.5+0.5,a:Math.random()*0.7+0.3});
+function init(i){
+  lv=i;complete=false;sel=-1;
+  const d=LV[i];lvlB.textContent="第 "+d.id+" 关";nxtBtn.style.display="none";kpop.classList.remove("s");
+  resize();mirs=d.mir.map(m=>({x:m.x*W,y:m.y*H,l:m.len,a:m.ang,ba:m.ang}));dr();
+}
+function dr(){
+  const d=LV[lv];
+  X.clearRect(0,0,W,H);
+  // stars
+  X.save();
+  for(const s of starz){X.globalAlpha=s.a*(0.6+0.4*Math.sin(Date.now()/600+s.x));X.fillStyle="#fff";X.beginPath();X.arc(s.x%(W+20),s.y%(H+20),s.r,0,Math.PI*2);X.fill()}
+  X.restore();
+  // obstacles
+  X.save();
+  for(const o of d.obs){const x2=o.x*W,y2=o.y*H,w2=o.w*W,h2=o.h*H;X.fillStyle="rgba(120,80,180,0.35)";X.beginPath();X.ellipse(x2+w2/2,y2+h2/2,w2/2,h2/2,0,0,Math.PI*2);X.fill();X.strokeStyle="rgba(180,140,220,0.2)";X.lineWidth=1;X.stroke()}
+  X.restore();
+  // ray
+  const r=rt();
+  X.save();
+  for(const s of r){X.beginPath();X.moveTo(s[0],s[1]);X.lineTo(s[2],s[3]);X.strokeStyle=s[4]?"rgba(255,200,50,0.9)":"rgba(255,200,80,0.4)";X.lineWidth=s[4]?3:2;X.setLineDash([6,4]);X.stroke();X.setLineDash([])}
+  X.restore();
+  // mirrors
+  for(let i=0;i<mirs.length;i++){const m=mirs[i];const a=m.a*Math.PI/180;const hl=m.l/2;const x1=m.x-hl*Math.cos(a),y1=m.y-hl*Math.sin(a),x2=m.x+hl*Math.cos(a),y2=m.y+hl*Math.sin(a);X.save();X.strokeStyle=i===sel?"#fff":"rgba(180,180,220,0.5)";X.lineWidth=i===sel?3:2;X.shadowColor=i===sel?"rgba(255,255,255,0.3)":"transparent";X.shadowBlur=i===sel?12:0;X.beginPath();X.moveTo(x1,y1);X.lineTo(x2,y2);X.stroke();X.beginPath();X.moveTo(x1,y1-2);X.lineTo(x2,y2-2);X.strokeStyle="rgba(255,255,255,0.08)";X.lineWidth=4;X.stroke();X.restore()}
+  // source
+  X.save();const sx=d.src.x*W,sy=d.src.y*H;const g=X.createRadialGradient(sx,sy,0,sx,sy,30);g.addColorStop(0,"rgba(255,220,100,0.3)");g.addColorStop(1,"rgba(255,180,50,0)");X.fillStyle=g;X.beginPath();X.arc(sx,sy,30,0,Math.PI*2);X.fill();X.fillStyle="#fbbf24";X.beginPath();X.arc(sx,sy,7,0,Math.PI*2);X.fill();X.restore();
+  // star
+  const stx=d.star.x*W,sty=d.star.y*H;
+  X.save();if(r.ok){const g2=X.createRadialGradient(stx,sty,0,stx,sty,30);g2.addColorStop(0,"rgba(255,215,0,0.5)");g2.addColorStop(1,"rgba(255,215,0,0)");X.fillStyle=g2;X.beginPath();X.arc(stx,sty,30,0,Math.PI*2);X.fill()}X.fillStyle=r.ok?"#fbbf24":"rgba(200,200,220,0.3)";X.font="30px sans-serif";X.textAlign="center";X.textBaseline="middle";X.fillText("\u2605",stx,sty);X.restore();
+  // complete check
+  if(r.ok&&!complete){complete=true;nxtBtn.style.display="block";if(lv<LV.length-1)nxtBtn.textContent="下一关 →";else nxtBtn.textContent="◀ 重新开始";kpopT.innerHTML="✦ 小知识 ✦<br><span style='font-size:15px;color:#fbbf24;font-weight:600'>"+d.tip+"</span>";kpop.classList.add("s")}
+  hnt.textContent=sel>=0?"↔ 拖动  "+Math.round(mirs[sel].a)+"\u00b0":"⭐ 点击镜子 → 拖动旋转";
+}
+function rt(){
+  const d=LV[lv];const segs=[];let ok=false;
+  function t(ox,oy,dx,dy,dep){
+    if(dep>6)return;const l2=Math.hypot(dx,dy);if(l2<0.001)return;
+    const ux=dx/l2,uy=dy/l2;let bt=1e9,bm=-1,ba=0;
+    for(let i=0;i<mirs.length;i++){const m=mirs[i];const a=m.a*Math.PI/180;const co=Math.cos(a),si=Math.sin(a),hl=m.l/2;const det=ux*(-si)-uy*(-co);if(Math.abs(det)<0.0001)continue;const t2=((m.x-ox*W)*(-si)-(m.y-oy*H)*(-co))/det;const s2=(ux*(m.y-oy*H)-uy*(m.x-ox*W))/det;if(t2>0.001&&t2<bt&&Math.abs(s2)<=hl){bt=t2;bm=i;ba=a}}
+    for(const o of d.obs){const ox2=o.x*W,oy2=o.y*H,ow=o.w*W,oh=o.h*H;const t1=((ox2-ox*W)/ux<((ox2+ow)-ox*W)/ux)?(ox2-ox*W)/ux:((ox2+ow)-ox*W)/ux;const t2_=((ox2-ox*W)/ux>((ox2+ow)-ox*W)/ux)?(ox2-ox*W)/ux:((ox2+ow)-ox*W)/ux;const ty1=((oy2-oy*H)/uy<((oy2+oh)-oy*H)/uy)?(oy2-oy*H)/uy:((oy2+oh)-oy*H)/uy;const ty2=((oy2-oy*H)/uy>((oy2+oh)-oy*H)/uy)?(oy2-oy*H)/uy:((oy2+oh)-oy*H)/uy;const mn=t1>ty1?t1:ty1;const mx=t2_<ty2?t2_:ty2;if(mn<mx&&mx>0){if(mn>0)bt=Math.min(bt,mn);break}}
+    let bdt=1e9;if(ux>0)bdt=Math.min(bdt,(W-ox*W)/ux);else if(ux<0)bdt=Math.min(bdt,(-20-ox*W)/ux);if(uy>0)bdt=Math.min(bdt,(H-oy*H)/uy);else if(uy<0)bdt=Math.min(bdt,(-20-oy*H)/uy);
+    const ht=Math.min(bt,bdt);const hx=ox*W+ux*ht,hy=oy*H+uy*ht;const hit=hx>=0&&hx<=W&&hy>=0&&hy<=H;
+    const stx=d.star.x*W,sty=d.star.y*H;const dst=Math.hypot(hx-stx,hy-sty);
+    segs.push([ox*W,oy*H,hx,hy,dst<18&&ht>0.1]);
+    if(dst<18&&ht>0.1){ok=true;return}
+    if(bm>=0&&bt===ht){const m=mirs[bm];let nx=-Math.sin(ba),ny=Math.cos(ba);const dot=ux*nx+uy*ny;if(dot>0){nx=-nx;ny=-ny}const rx=ux-2*dot*nx,ry=uy-2*dot*ny;t(hx/W,hy/H,rx,ry,dep+1)}
+  }t(d.src.x,d.src.y,d.d.x,d.d.y,0);
+  segs.ok=ok;return segs;
+}
+function gP(e){const r=C.getBoundingClientRect();const t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top}}
+function fM(x,y){for(let i=0;i<mirs.length;i++){if(Math.hypot(x-mirs[i].x,y-mirs[i].y)<55)return i}return-1}
+C.addEventListener("mousedown",function(e){if(complete)return;const p=gP(e);const i=fM(p.x,p.y);sel=i;if(i>=0)dx=p.x;dr()});
+C.addEventListener("mousemove",function(e){if(sel<0||complete)return;const p=gP(e);mirs[sel].a=mirs[sel].ba+(p.x-dx)*0.25;dr()});
+C.addEventListener("mouseup",function(){if(sel>=0){mirs[sel].ba=mirs[sel].a;sel=-1}dr()});
+C.addEventListener("touchstart",function(e){if(complete)return;const p=gP(e);const i=fM(p.x,p.y);sel=i;if(i>=0){dx=p.x;e.preventDefault()}dr()},{passive:false});
+C.addEventListener("touchmove",function(e){if(sel<0||complete)return;e.preventDefault();const p=gP(e);mirs[sel].a=mirs[sel].ba+(p.x-dx)*0.25;dr()},{passive:false});
+C.addEventListener("touchend",function(){if(sel>=0){mirs[sel].ba=mirs[sel].a;sel=-1}dr()});
+rstBtn.addEventListener("click",function(){const d=LV[lv];mirs=d.mir.map(m=>({x:m.x*W,y:m.y*H,l:m.len,a:m.ang,ba:m.ang}));complete=false;nxtBtn.style.display="none";kpop.classList.remove("s");dr()});
+nxtBtn.addEventListener("click",function(){if(lv<LV.length-1){lv++;const d=LV[lv];resize();mirs=d.mir.map(m=>({x:m.x*W,y:m.y*H,l:m.len,a:m.ang,ba:m.ang}));complete=false;lvlB.textContent="第 "+d.id+" 关";nxtBtn.style.display="none";kpop.classList.remove("s");dr()}else{init(0)}});
+window.addEventListener("resize",function(){resize();const d=LV[lv];mirs=d.mir.map(m=>({x:m.x*W,y:m.y*H,l:m.len,a:m.ang,ba:m.ang}));dr()});
+init(0);
+</script>
+</body>
+</html>
